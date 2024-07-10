@@ -2,31 +2,31 @@ services:
   # An old issue: docker-compose will mount volume as root.
   # Workaround: https://github.com/docker/compose/issues/3270
   # (Command 'docker run -v' is not affected)
-  file-chown:
-    container_name: file-chown
-    build:
-      context: .
-      dockerfile: Dockerfile
-    user: "root"
-    volumes:
-      - ./models:/code/models
-    command: "chown -R runner:runner /home/runner"
+  # file-chown:
+  #   container_name: file-chown
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   user: "root"
+  #   volumes:
+  #     - ./models:/code/models
+  #   command: "chown -R runner:runner /code"
 
-  comfyui:
+  web:
     init: true
     container_name: comfyui
     network_mode: "host"
     tty: true
-    depends_on:
-      file-chown:
-        condition: service_completed_successfully
+    # depends_on:
+    #   file-chown:
+    #     condition: service_completed_successfully
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - ./models:/code/models
     ports:
-      - "8188:8188"
+      - 8188:8188
     environment:
       - CLI_ARGS=
     security_opt:
@@ -36,5 +36,6 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ["0"]
+              device_ids: ["1"]
               capabilities: [gpu]
+    entrypoint: ["python", "main.py"]

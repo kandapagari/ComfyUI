@@ -20,4 +20,3 @@ EXPOSE 8188
 # Install dependencies
 RUN pip install uv
 RUN uv pip install -r requirements.txt --system
-RUN python download_models.py
