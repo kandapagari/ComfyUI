@@ -236,6 +236,19 @@ try:
 except:
     pass
 
+
+try:
+    if is_amd():
+        arch = torch.cuda.get_device_properties(get_torch_device()).gcnArchName
+        logging.info("AMD arch: {}".format(arch))
+        if args.use_split_cross_attention == False and args.use_quad_cross_attention == False:
+            if int(torch_version[0]) >= 2 and int(torch_version[2]) >= 7:  # works on 2.6 but doesn't actually seem to improve much
+                if arch in ["gfx1100"]: #TODO: more arches
+                    ENABLE_PYTORCH_ATTENTION = True
+except:
+    pass
+
+
 if ENABLE_PYTORCH_ATTENTION:
     torch.backends.cuda.enable_math_sdp(True)
     torch.backends.cuda.enable_flash_sdp(True)
@@ -899,6 +912,11 @@ def pytorch_attention_enabled():
     global ENABLE_PYTORCH_ATTENTION
     return ENABLE_PYTORCH_ATTENTION
 
+def pytorch_attention_enabled_vae():
+    if is_amd():
+        return False  # enabling pytorch attention on AMD currently causes crash when doing high res
+    return pytorch_attention_enabled()
+
 def pytorch_attention_flash_attention():
     global ENABLE_PYTORCH_ATTENTION
     if ENABLE_PYTORCH_ATTENTION:
@@ -909,6 +927,8 @@ def pytorch_attention_flash_attention():
             return True
         if is_ascend_npu():
             return True
+        if is_amd():
+            return True #if you have pytorch attention enabled on AMD it probably supports at least mem efficient attention
     return False
 
 def mac_version():
@@ -1085,6 +1105,11 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
 
     if is_ascend_npu():
         return True
+
+    if is_amd():
+        arch = torch.cuda.get_device_properties(device).gcnArchName
+        if arch in ["gfx1030", "gfx1031", "gfx1010", "gfx1011", "gfx1012", "gfx906", "gfx900", "gfx803"]:  # RDNA2 and older don't support bf16
+            return False
 
     props = torch.cuda.get_device_properties(device)
     if props.major >= 8:
