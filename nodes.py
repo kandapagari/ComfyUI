@@ -914,7 +914,7 @@ class CLIPLoader:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { "clip_name": (folder_paths.get_filename_list("text_encoders"), ),
-                              "type": (["stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi", "ltxv", "pixart", "cosmos", "lumina2"], ),
+                              "type": (["stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi", "ltxv", "pixart", "cosmos", "lumina2", "wan"], ),
                               },
                 "optional": {
                               "device": (["default", "cpu"], {"advanced": True}),
@@ -924,7 +924,7 @@ class CLIPLoader:
 
     CATEGORY = "advanced/loaders"
 
-    DESCRIPTION = "[Recipes]\n\nstable_diffusion: clip-l\nstable_cascade: clip-g\nsd3: t5 / clip-g / clip-l\nstable_audio: t5\nmochi: t5\ncosmos: old t5 xxl\nlumina2: gemma 2 2B"
+    DESCRIPTION = "[Recipes]\n\nstable_diffusion: clip-l\nstable_cascade: clip-g\nsd3: t5 xxl/ clip-g / clip-l\nstable_audio: t5 base\nmochi: t5 xxl\ncosmos: old t5 xxl\nlumina2: gemma 2 2B\nwan: umt5 xxl"
 
     def load_clip(self, clip_name, type="stable_diffusion", device="default"):
         if type == "stable_cascade":
@@ -943,6 +943,8 @@ class CLIPLoader:
             clip_type = comfy.sd.CLIPType.COSMOS
         elif type == "lumina2":
             clip_type = comfy.sd.CLIPType.LUMINA2
+        elif type == "wan":
+            clip_type = comfy.sd.CLIPType.WAN
         else:
             clip_type = comfy.sd.CLIPType.STABLE_DIFFUSION
 
@@ -1763,6 +1765,36 @@ class LoadImageMask:
 
         return True
 
+
+class LoadImageOutput(LoadImage):
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("COMBO", {
+                    "image_upload": True,
+                    "image_folder": "output",
+                    "remote": {
+                        "route": "/internal/files/output",
+                        "refresh_button": True,
+                        "control_after_refresh": "first",
+                    },
+                }),
+            }
+        }
+
+    DESCRIPTION = "Load an image from the output folder. When the refresh button is clicked, the node will update the image list and automatically select the first image, allowing for easy iteration."
+    EXPERIMENTAL = True
+    FUNCTION = "load_image_output"
+
+    def load_image_output(self, image):
+        return self.load_image(f"{image} [output]")
+
+    @classmethod
+    def VALIDATE_INPUTS(s, image):
+        return True
+
+
 class ImageScale:
     upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
     crop_methods = ["disabled", "center"]
@@ -1949,6 +1981,7 @@ NODE_CLASS_MAPPINGS = {
     "PreviewImage": PreviewImage,
     "LoadImage": LoadImage,
     "LoadImageMask": LoadImageMask,
+    "LoadImageOutput": LoadImageOutput,
     "ImageScale": ImageScale,
     "ImageScaleBy": ImageScaleBy,
     "ImageInvert": ImageInvert,
@@ -2049,6 +2082,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PreviewImage": "Preview Image",
     "LoadImage": "Load Image",
     "LoadImageMask": "Load Image (as Mask)",
+    "LoadImageOutput": "Load Image (from Outputs)",
     "ImageScale": "Upscale Image",
     "ImageScaleBy": "Upscale Image By",
     "ImageUpscaleWithModel": "Upscale Image (using Model)",
@@ -2233,7 +2267,9 @@ def init_builtin_extra_nodes():
         "nodes_hooks.py",
         "nodes_load_3d.py",
         "nodes_cosmos.py",
+        "nodes_video.py",
         "nodes_lumina2.py",
+        "nodes_wan.py",
     ]
 
     import_failed = []
