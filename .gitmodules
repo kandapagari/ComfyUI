@@ -1,0 +1,9 @@
+[submodule "custom_nodes/ComfyUI-Manager"]
+	path = custom_nodes/ComfyUI-Manager
+	url = git@github.com:ltdrdata/ComfyUI-Manager.git
+[submodule "custom_nodes/lora-info"]
+	path = custom_nodes/lora-info
+	url = git@github.com:jitcoder/lora-info.git
+[submodule "custom_nodes/LoadLoraWithTags"]
+	path = custom_nodes/LoadLoraWithTags
+	url = git@github.com:Extraltodeus/LoadLoraWithTags.git
