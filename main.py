@@ -409,3 +409,5 @@ if __name__ == "__main__":
         logging.info("\nStopped server")
 
     cleanup_temp()
+
+# Trigger docker workflow
