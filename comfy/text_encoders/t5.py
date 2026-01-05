@@ -146,7 +146,7 @@ class T5Attention(torch.nn.Module):
         )
         values = self.relative_attention_bias(relative_position_bucket, out_dtype=dtype)  # shape (query_length, key_length, num_heads)
         values = values.permute([2, 0, 1]).unsqueeze(0)  # shape (1, num_heads, query_length, key_length)
-        return values
+        return values.contiguous()
 
     def forward(self, x, mask=None, past_bias=None, optimized_attention=None):
         q = self.q(x)
@@ -199,7 +199,7 @@ class T5Stack(torch.nn.Module):
         self.final_layer_norm = T5LayerNorm(model_dim, dtype=dtype, device=device, operations=operations)
         # self.dropout = nn.Dropout(config.dropout_rate)
 
-    def forward(self, x, attention_mask=None, intermediate_output=None, final_layer_norm_intermediate=True, dtype=None):
+    def forward(self, x, attention_mask=None, intermediate_output=None, final_layer_norm_intermediate=True, dtype=None, embeds_info=[]):
         mask = None
         if attention_mask is not None:
             mask = 1.0 - attention_mask.to(x.dtype).reshape((attention_mask.shape[0], 1, -1, attention_mask.shape[-1])).expand(attention_mask.shape[0], 1, attention_mask.shape[-1], attention_mask.shape[-1])
@@ -239,8 +239,11 @@ class T5(torch.nn.Module):
     def set_input_embeddings(self, embeddings):
         self.shared = embeddings
 
-    def forward(self, input_ids, *args, **kwargs):
-        x = self.shared(input_ids, out_dtype=kwargs.get("dtype", torch.float32))
+    def forward(self, input_ids, attention_mask, embeds=None, num_tokens=None, **kwargs):
+        if input_ids is None:
+            x = embeds
+        else:
+            x = self.shared(input_ids, out_dtype=kwargs.get("dtype", torch.float32))
         if self.dtype not in [torch.float32, torch.float16, torch.bfloat16]:
             x = torch.nan_to_num(x) #Fix for fp8 T5 base
-        return self.encoder(x, *args, **kwargs)
+        return self.encoder(x, attention_mask=attention_mask, **kwargs)
